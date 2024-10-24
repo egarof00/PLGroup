@@ -48,14 +48,6 @@ def evaluate(tree):
             result = ('app', e1, tree[2])
             pass
     else:
-        # AT THIS POINT, CHECK RIGHTMOST DERIVATION
-        # GO ALL THE WAY TO THE RIGHT AND ASSIGN ARGUMENT AS -1 INDEX
-        # ASSIGN OTHER VALUES ACCORDINGLY LAM, NAME, BODY, ARGUMENT
-        # if (e1[0] == 'lam'):
-        #     # there is something on the right side that can be simplified
-        #     print("rightmost simplification detected")
-        # else:
-        #     # there is no rightmost simplification
         result = tree
         pass
     return result
