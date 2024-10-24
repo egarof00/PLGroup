@@ -7,8 +7,14 @@ print(f"Lark version: {lark.__version__}")
 
 #  run/execute/interpret source code
 def interpret(source_code):
+    print("SOURCE: ")
+    print(source_code)
+    print()
     cst = parser.parse(source_code)
+    print(cst)
+    print()
     ast = LambdaCalculusTransformer().transform(cst)
+    print(ast)
     result_ast = evaluate(ast)
     result = linearize(result_ast)
     return result
@@ -47,6 +53,10 @@ def evaluate(tree):
         else:
             result = ('app', e1, tree[2])
             pass
+    elif tree[0] == 'lam':
+        body = evaluate(tree[2])
+        result = ('lam', tree[1], body)
+        pass
     else:
         result = tree
         pass
@@ -96,15 +106,8 @@ def linearize(ast):
         raise Exception('Unknown AST', ast)
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python interpreter.py <filename>", file=sys.stderr)
-        sys.exit(1)
-
-    filename = sys.argv[1]
-    with open(filename, 'r') as file:
-        expression = file.read()
-
-    result = interpret(expression)
+    input = sys.argv[1]
+    result = interpret(input)
     print(f"\033[95m{result}\033[0m")
 
 if __name__ == "__main__":
