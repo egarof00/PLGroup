@@ -11,35 +11,9 @@
 ?exp3: NAME                         -> var
       | "(" exp ")"
 
-NAME: /[a-z_][a-zA-Z0-9_]*/         # names cannot start with upper case
+NAME: /[a-z_][a-zA-Z0-9_]*/         
 
 COMMENT: /--[^\n]*/                 // comments start with --
 %ignore COMMENT
 %import common.WS
 %ignore WS
-
-(*
-?start: exp
-
-
-?exp1: exp1 "*" exp2          -> times
-    | exp2
-
-    
-
-?exp2: "-"exp2                -> negative
-    | exp3
-
-?exp3: exp4 "^" exp3          -> exponent
-    | exp4
-
-?exp4: "log" exp4 "base" exp5 -> logarithm
-    | exp5
-
-?exp5: NUMBER                 -> num
-    | "(" exp ")"                                  
-
-%import common.NUMBER
-%import common.WS
-%ignore WS
-*)
