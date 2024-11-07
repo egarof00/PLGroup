@@ -13,9 +13,9 @@
       | "(" exp ")"
 
 NAME: /[a-z_][a-zA-Z0-9_]*/         
-NUMBER: /\d+/
+NUMBER: /\d+(\.\d+)?/
 
-COMMENT: /--[^\n]*/                 // comments start with --
+COMMENT: /--[^\n]*/
 %ignore COMMENT
 %import common.WS
 %ignore WS
