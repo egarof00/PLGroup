@@ -9,9 +9,11 @@
 ?exp2: exp2 exp3                    -> app
       | exp3
 ?exp3: NAME                         -> var
+      | NUMBER                -> number
       | "(" exp ")"
 
 NAME: /[a-z_][a-zA-Z0-9_]*/         
+NUMBER: /\d+/
 
 COMMENT: /--[^\n]*/                 // comments start with --
 %ignore COMMENT
