@@ -24,6 +24,12 @@ parser = Lark(open("grammar.lark").read(), parser='lalr')
 
 # convert CST to AST
 class LambdaCalculusTransformer(Transformer):
+    def plus(self, args):
+        return ('plus', args[0], args[1])
+    
+    def minus(self, args):
+        return ('minus', args[0], args[1])
+    
     def lam(self, args):
         name, body = args
         return ('lam', str(name), body)
@@ -41,7 +47,11 @@ class LambdaCalculusTransformer(Transformer):
 
 # reduce AST to normal form
 def evaluate(tree):
-    if tree[0] == 'app':
+    if tree[0] == 'plus':
+        return evaluate(tree[1]) + evaluate(tree[2])
+    elif tree[0] == 'minus':
+        return evaluate(tree[1]) - evaluate(tree[2])
+    elif tree[0] == 'app':
         e1 = evaluate(tree[1])
         if e1[0] == 'lam':
             body = e1[2]
