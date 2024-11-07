@@ -44,9 +44,13 @@ class LambdaCalculusTransformer(Transformer):
 
     def NAME(self, token):
         return str(token)
+    
+    def NUMBER(self, token):
+        return int(token)
 
 # reduce AST to normal form
 def evaluate(tree):
+    print("tree 0: " + str(tree[0]))
     if tree[0] == 'plus':
         return evaluate(tree[1]) + evaluate(tree[2])
     elif tree[0] == 'minus':
@@ -67,6 +71,8 @@ def evaluate(tree):
         body = evaluate(tree[2])
         result = ('lam', tree[1], body)
         pass
+    elif isinstance(tree, int):  # This is when a number is evaluated
+        return tree 
     else:
         result = tree
         pass
@@ -102,6 +108,9 @@ def substitute(tree, name, replacement):
             # \x.e [r/n] --> (\fresh.(e[fresh/x])) [r/n]
     elif tree[0] == 'app':
         return ('app', substitute(tree[1], name, replacement), substitute(tree[2], name, replacement))
+    elif tree[0] == 'plus' or tree[0] == 'minus':
+        # Ensure the operator nodes are handled correctly by recursively applying substitution
+        return (tree[0], substitute(tree[1], name, replacement), substitute(tree[2], name, replacement))
     else:
         raise Exception('Unknown tree', tree)
 
@@ -112,6 +121,8 @@ def linearize(ast):
         return "(" + "\\" + ast[1] + "." + linearize(ast[2]) + ")"
     elif ast[0] == 'app':
         return "(" + linearize(ast[1]) + " " + linearize(ast[2]) + ")"
+    elif isinstance(ast, int):  # If it's a number
+        return str(ast)  # Just return the number as a string
     else:
         raise Exception('Unknown AST', ast)
 
