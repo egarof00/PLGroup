@@ -53,6 +53,15 @@ def evaluate(tree):
         else:
             result = ('app', e1, tree[2])
             pass
+    elif tree[0] == 'plus':
+        left = evaluate(tree[1])
+        right = evaluate(tree[2])
+        # if left is int and right is int
+        if isinstance(left, int) and isinstance(right, int):
+            result = left + right
+        else:
+            result = str(left) + " + " +  str(right)
+            return result
     else:
         result = tree
         pass
