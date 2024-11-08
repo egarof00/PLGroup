@@ -72,7 +72,7 @@ def evaluate(tree):
             result = left + right
             return result
         else:
-            #this is wrong but the general idea is there
+            #this is wrong but use debug console to print ast and see what formal shoudl look like
             result = str(left[1]) + " + " +  str(right[1])
             return result
     else:
