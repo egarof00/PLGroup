@@ -70,8 +70,10 @@ def evaluate(tree):
         # if left is int and right is int
         if isinstance(left, int) and isinstance(right, int):
             result = left + right
+            return result
         else:
-            result = str(left) + " + " +  str(right)
+            #this is wrong but the general idea is there
+            result = str(left[1]) + " + " +  str(right[1])
             return result
     else:
         result = tree
