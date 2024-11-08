@@ -46,17 +46,13 @@ def evaluate(tree):
         if e1[0] == 'lam':
             body = e1[2]
             name = e1[1]
-            argument = tree[2]
-            rhs = substitute(body, name, argument)
-            result = evaluate(rhs) 
+            arg = tree[2]
+            rhs = substitute(body, name, arg)
+            result = evaluate(rhs)
             pass
         else:
             result = ('app', e1, tree[2])
             pass
-    elif tree[0] == 'lam':
-        body = evaluate(tree[2])
-        result = ('lam', tree[1], body)
-        pass
     else:
         result = tree
         pass
