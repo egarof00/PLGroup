@@ -45,13 +45,16 @@ class LambdaCalculusTransformer(Transformer):
     def NAME(self, token):
         return str(token)
     
-    def NUMBER(self, token):
-        return int(token)
+    def number(self, args):
+        # return int(token)
+        token, = args
+        return ('var', float(token))
 
 # reduce AST to normal form
 def evaluate(tree):
     print("tree 0: " + str(tree[0]))
     if tree[0] == 'plus':
+        # if both are nums, 
         return evaluate(tree[1]) + evaluate(tree[2])
     elif tree[0] == 'minus':
         return evaluate(tree[1]) - evaluate(tree[2])
