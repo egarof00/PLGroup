@@ -52,30 +52,27 @@ class LambdaCalculusTransformer(Transformer):
 
 # reduce AST to normal form
 def evaluate(tree):
-    print("tree 0: " + str(tree[0]))
-    if tree[0] == 'plus':
-        # if both are nums, 
-        return evaluate(tree[1]) + evaluate(tree[2])
-    elif tree[0] == 'minus':
-        return evaluate(tree[1]) - evaluate(tree[2])
-    elif tree[0] == 'app':
+    if tree[0] == 'app':
         e1 = evaluate(tree[1])
         if e1[0] == 'lam':
             body = e1[2]
             name = e1[1]
-            argument = tree[2]
-            rhs = substitute(body, name, argument)
-            result = evaluate(rhs) 
+            arg = tree[2]
+            rhs = substitute(body, name, arg)
+            result = evaluate(rhs)
             pass
         else:
             result = ('app', e1, tree[2])
             pass
-    elif tree[0] == 'lam':
-        body = evaluate(tree[2])
-        result = ('lam', tree[1], body)
-        pass
-    elif isinstance(tree, int):  # This is when a number is evaluated
-        return tree 
+    elif tree[0] == 'plus':
+        left = evaluate(tree[1])
+        right = evaluate(tree[2])
+        # if left is int and right is int
+        if isinstance(left, int) and isinstance(right, int):
+            result = left + right
+        else:
+            result = str(left) + " + " +  str(right)
+            return result
     else:
         result = tree
         pass
