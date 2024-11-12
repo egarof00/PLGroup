@@ -1,21 +1,31 @@
 ?start: exp
 
-?exp: exp "+" exp1            -> plus
-   | exp "-" exp1             -> minus
-   | exp1
+?exp: sum
 
-?exp1: "\\" NAME "." exp1             -> lam
-      | exp2            
-?exp2: exp2 exp3                    -> app
-      | exp3
-?exp3: NAME                         -> var
-      | NUMBER                -> number
-      | "(" exp ")"
+?sum: product
+    | sum "+" product    -> plus
+    | sum "-" product    -> minus
 
-NAME: /[a-z_][a-zA-Z0-9_]*/         
+?product: unary
+        | product "*" unary    -> multiply
+
+?unary: app
+      | "-" unary         -> negation
+
+?app: atom
+    | app atom           -> app
+
+?atom: NUMBER            -> number
+     | NAME              -> var
+     | "\\" NAME "." exp -> lam
+     | "(" exp ")"
+
+// Define the terminals (tokens)
+WS: /\s+/
+COMMENT: /\/\/.*/
+
+NAME: /[a-z_][a-zA-Z0-9_]*/
 NUMBER: /\d+(\.\d+)?/
 
-COMMENT: /--[^\n]*/
-%ignore COMMENT
-%import common.WS
 %ignore WS
+%ignore COMMENT

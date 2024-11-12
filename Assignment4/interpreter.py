@@ -30,6 +30,9 @@ class LambdaCalculusTransformer(Transformer):
     def minus(self, args):
         return ('minus', args[0], args[1])
     
+    def multiply(self, args):
+        return ('multiply', args[0], args[1])
+    
     def lam(self, args):
         name, body = args
         return ('lam', str(name), body)
@@ -46,39 +49,104 @@ class LambdaCalculusTransformer(Transformer):
         return str(token)
     
     def number(self, args):
-        # return int(token)
         token, = args
-        return ('var', float(token))
+        return float(token)  # Return the number directly as a float
 
-# reduce AST to normal form
+    def negation(self, args):
+        value, = args
+        if isinstance(value, (int, float)):
+            return -value
+        return ('negation', value)
+
+def linearize(ast):
+    if isinstance(ast, (float, int)):
+        return f"{ast:.1f}"
+    
+    # If it can't be fully evaluated, format it appropriately
+    if isinstance(ast, tuple):
+        if ast[0] == 'var':
+            return ast[1]
+        
+        elif ast[0] == 'lam':
+            return f"(\\{ast[1]}.{linearize(ast[2])})"
+        
+        elif ast[0] == 'app':
+            return f"({linearize(ast[1])} {linearize(ast[2])})"
+        
+        elif ast[0] == 'plus':
+            return f"({linearize(ast[1])} + {linearize(ast[2])})"
+        
+        elif ast[0] == 'minus':
+            return f"({linearize(ast[1])} - {linearize(ast[2])})"
+        
+        elif ast[0] == 'multiply':
+            return f"({linearize(ast[1])} * {linearize(ast[2])})"
+        
+        elif ast[0] == 'negation':
+            return f"(-{linearize(ast[1])})"
+        
+        elif ast[0] == 'number':
+            return f"{ast[1]:.1f}"
+    
+    return str(ast)
+
 def evaluate(tree):
-    if tree[0] == 'app':
-        e1 = evaluate(tree[1])
-        if e1[0] == 'lam':
-            body = e1[2]
-            name = e1[1]
-            arg = tree[2]
-            rhs = substitute(body, name, arg)
-            result = evaluate(rhs)
-            pass
-        else:
-            result = ('app', e1, tree[2])
-            pass
-    elif tree[0] == 'plus':
-        left = evaluate(tree[1])
-        right = evaluate(tree[2])
-        # if left is int and right is int
-        if isinstance(left, int) and isinstance(right, int):
-            result = left + right
-            return result
-        else:
-            #this is wrong but use debug console to print ast and see what formal shoudl look like
-            result = str(left[1]) + " + " +  str(right[1])
-            return result
-    else:
-        result = tree
-        pass
-    return result
+    if isinstance(tree, (float, int)):
+        return tree
+
+    if isinstance(tree, tuple):
+        if tree[0] == 'app':
+            # Only evaluate the left side of the application
+            left = evaluate(tree[1])
+            
+            # If left is a lambda, then perform beta reduction
+            # but DON'T evaluate the right side first
+            if isinstance(left, tuple) and left[0] == 'lam':
+                # Remove evaluation of right side here
+                substituted = substitute(left[2], left[1], tree[2])
+                return evaluate(substituted)
+            
+            # Otherwise, preserve the application structure
+            return ('app', left, tree[2])
+
+        elif tree[0] == 'multiply':
+            # Evaluate multiplication first
+            left = evaluate(tree[1])
+            right = evaluate(tree[2])
+            if isinstance(left, (float, int)) and isinstance(right, (float, int)):
+                return left * right
+            return ('multiply', left, right)
+
+        elif tree[0] == 'plus':
+            left = evaluate(tree[1])
+            right = evaluate(tree[2])
+            if isinstance(left, (float, int)) and isinstance(right, (float, int)):
+                return left + right
+            return ('plus', left, right)
+
+        elif tree[0] == 'minus':
+            left = evaluate(tree[1])
+            right = evaluate(tree[2])
+            if isinstance(left, (float, int)) and isinstance(right, (float, int)):
+                return left - right
+            return ('minus', left, right)
+
+        elif tree[0] == 'lam':
+            return tree
+
+        elif tree[0] == 'var':
+            return tree
+
+        elif tree[0] == 'number':
+            return tree[1]
+
+        elif tree[0] == 'negation':
+            value = evaluate(tree[1])
+            if isinstance(value, (float, int)):
+                return -value
+            return ('negation', value)
+
+    return tree
 
 # generate a fresh name 
 # needed eg for \y.x [y/x] --> \z.y where z is a fresh name)
@@ -95,38 +163,35 @@ name_generator = NameGenerator()
 
 # for beta reduction (capture-avoiding substitution)
 def substitute(tree, name, replacement):
-    # tree [replacement/name] = tree with all instances of 'name' replaced by 'replacement'
-    if tree[0] == 'var':
-        if tree[1] == name:
-            return replacement # n [r/n] --> r
-        else:
-            return tree # x [r/n] --> x
-    elif tree[0] == 'lam':
-        if tree[1] == name:
-            return tree # \n.e [r/n] --> \n.e
-        else:
-            fresh_name = name_generator.generate()
-            return ('lam', fresh_name, substitute(substitute(tree[2], tree[1], ('var', fresh_name)), name, replacement))
-            # \x.e [r/n] --> (\fresh.(e[fresh/x])) [r/n]
-    elif tree[0] == 'app':
-        return ('app', substitute(tree[1], name, replacement), substitute(tree[2], name, replacement))
-    elif tree[0] == 'plus' or tree[0] == 'minus':
-        # Ensure the operator nodes are handled correctly by recursively applying substitution
-        return (tree[0], substitute(tree[1], name, replacement), substitute(tree[2], name, replacement))
-    else:
-        raise Exception('Unknown tree', tree)
-
-def linearize(ast):
-    if ast[0] == 'var':
-        return ast[1]
-    elif ast[0] == 'lam':
-        return "(" + "\\" + ast[1] + "." + linearize(ast[2]) + ")"
-    elif ast[0] == 'app':
-        return "(" + linearize(ast[1]) + " " + linearize(ast[2]) + ")"
-    elif isinstance(ast, int):  # If it's a number
-        return str(ast)  # Just return the number as a string
-    else:
-        raise Exception('Unknown AST', ast)
+    if isinstance(tree, (float, int)):
+        return tree
+        
+    if isinstance(tree, tuple):
+        if tree[0] == 'var':
+            if tree[1] == name:
+                return replacement
+            return tree
+            
+        elif tree[0] == 'lam':
+            if tree[1] == name:
+                return tree
+            else:
+                fresh_name = name_generator.generate()
+                body = substitute(tree[2], tree[1], ('var', fresh_name))
+                body = substitute(body, name, replacement)
+                return ('lam', fresh_name, body)
+                
+        elif tree[0] in ['app', 'plus', 'minus', 'multiply']:
+            return (tree[0], substitute(tree[1], name, replacement), 
+                   substitute(tree[2], name, replacement))
+            
+        elif tree[0] == 'negation':
+            return (tree[0], substitute(tree[1], name, replacement))
+            
+        elif tree[0] == 'number':
+            return tree
+            
+    return tree
 
 def main():
     input = sys.argv[1]
