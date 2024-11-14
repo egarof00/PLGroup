@@ -1,13 +1,24 @@
 ?start: exp
 
 ?exp: sum
+    | "let" NAME "=" exp "in" exp    -> let
+    | "letrec" NAME "=" exp "in" exp -> rec
+    | "fix" exp                      -> fix
+    | "if" exp "then" exp "else" exp -> if_then_else
 
 ?sum: product
     | sum "+" product    -> plus
     | sum "-" product    -> minus
 
-?product: unary
-        | product "*" unary    -> multiply
+?product: comparison
+        | product "*" comparison    -> multiply
+
+?comparison: unary
+          | comparison "==" unary  -> eq
+          | comparison "<" unary   -> lt
+          | comparison ">" unary   -> gt
+          | comparison "<=" unary  -> le
+          | comparison ">=" unary  -> ge
 
 ?unary: app
       | "-" unary         -> negation
