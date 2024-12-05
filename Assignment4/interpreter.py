@@ -91,6 +91,21 @@ class LambdaCalculusTransformer(Transformer):
         left, right = args
         return ('le', left, right)
 
+    def seq(self, args):
+        return ('seq', args[0], args[1])
+
+    def hd(self, args):
+        return ('hd', args[0])
+
+    def tl(self, args):
+        return ('tl', args[0])
+
+    def nil(self, args):
+        return ('nil',)
+
+    def cons(self, args):
+        return ('cons', args[0], args[1])
+
 def linearize(ast):
     if isinstance(ast, (float, int)):
         return f"{ast:.1f}"
@@ -147,6 +162,19 @@ def linearize(ast):
         
         elif ast[0] == 'le':
             return f"({linearize(ast[1])} <= {linearize(ast[2])})"
+        
+        elif ast[0] == 'seq':
+            # Simply format with ;; between evaluated expressions
+            return f"{linearize(ast[1])} ;; {linearize(ast[2])}"
+    
+        elif ast[0] == 'nil':
+            return "#"
+        
+        elif ast[0] == 'cons':
+            # Format cons with : syntax and proper parentheses
+            head = linearize(ast[1])
+            tail = linearize(ast[2])
+            return f"({head} : {tail})"
     
     return str(ast)
 
@@ -156,18 +184,28 @@ def evaluate(tree):
 
     if isinstance(tree, tuple):
         if tree[0] == 'app':
-            # Only evaluate the left side of the application
+            # Evaluate both sides of the application
             left = evaluate(tree[1])
+            right = evaluate(tree[2])
             
             # If left is a lambda, then perform beta reduction
-            # but DON'T evaluate the right side first
             if isinstance(left, tuple) and left[0] == 'lam':
-                # Remove evaluation of right side here
-                substituted = substitute(left[2], left[1], tree[2])
-                return evaluate(substituted)
+                substituted = substitute(left[2], left[1], right)
+                return evaluate(substituted)  # Continue evaluating after substitution
             
             # Otherwise, preserve the application structure
-            return ('app', left, tree[2])
+            return ('app', left, right)
+
+        elif tree[0] == 'cons':
+            # Fully evaluate both head and tail before constructing the cons cell
+            head = evaluate(tree[1])
+            tail = evaluate(tree[2])
+            
+            # If head is an application, evaluate it further
+            if isinstance(head, tuple) and head[0] == 'app':
+                head = evaluate(head)
+                
+            return ('cons', head, tail)
 
         elif tree[0] == 'multiply':
             # Evaluate multiplication first
@@ -246,10 +284,23 @@ def evaluate(tree):
         elif tree[0] == 'eq':
             left = evaluate(tree[1])
             right = evaluate(tree[2])
+            # Compare the evaluated expressions
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
-                return left == right
-            return ('eq', left, right)
-
+                return float(left == right)
+            # For lists (cons structures), compare them recursively
+            if isinstance(left, tuple) and isinstance(right, tuple):
+                if left[0] == 'nil' and right[0] == 'nil':
+                    return float(True)
+                if left[0] == 'cons' and right[0] == 'cons':
+                    # Compare heads
+                    head_eq = evaluate(('eq', left[1], right[1]))
+                    if head_eq == 0.0:  # If heads are not equal
+                        return 0.0
+                    # Compare tails
+                    return evaluate(('eq', left[2], right[2]))
+                return 0.0  # Different types of lists
+            return 0.0  # Different types
+            
         elif tree[0] == 'lt':
             left = evaluate(tree[1])
             right = evaluate(tree[2])
@@ -277,6 +328,33 @@ def evaluate(tree):
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left <= right
             return ('le', left, right)
+
+        elif tree[0] == 'seq':
+            # Evaluate both expressions and combine their results
+            result1 = evaluate(tree[1])
+            result2 = evaluate(tree[2])
+            return ('seq', result1, result2)  # Keep original 'seq' tag
+
+        elif tree[0] == 'hd':
+            lst = evaluate(tree[1])
+            if isinstance(lst, tuple) and lst[0] == 'cons':
+                return lst[1]  # Return the head of the list
+            raise ValueError("hd applied to non-list")
+
+        elif tree[0] == 'tl':
+            lst = evaluate(tree[1])
+            if isinstance(lst, tuple) and lst[0] == 'cons':
+                return lst[2]  # Return the tail of the list
+            raise ValueError("tl applied to non-list")
+
+        elif tree[0] == 'nil':
+            return ('nil',)
+
+        elif tree[0] == 'cons':
+            head = evaluate(tree[1])
+            tail = evaluate(tree[2])
+            return ('cons', head, tail)
+
     return tree
 
 # generate a fresh name 

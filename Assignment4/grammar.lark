@@ -1,24 +1,27 @@
-?start: exp
+?start: prog
 
-?exp: sum
-    | "let" NAME "=" exp "in" exp    -> let
-    | "letrec" NAME "=" exp "in" exp -> rec
-    | "fix" exp                      -> fix
-    | "if" exp "then" exp "else" exp -> if_then_else
+?prog: exp
+     | exp ";;" prog -> seq
+
+?exp: let_exp
+    | if_then_else
+    | cons
+
+?let_exp: "let" NAME "=" exp "in" exp    -> let
+        | "letrec" NAME "=" exp "in" exp -> rec
+        | "fix" exp                      -> fix
+
+?if_then_else: "if" exp "then" exp "else" exp -> if_then_else
+
+?cons: sum ":" cons -> cons
+     | sum
 
 ?sum: product
     | sum "+" product    -> plus
     | sum "-" product    -> minus
 
-?product: comparison
-        | product "*" comparison    -> multiply
-
-?comparison: unary
-          | comparison "==" unary  -> eq
-          | comparison "<" unary   -> lt
-          | comparison ">" unary   -> gt
-          | comparison "<=" unary  -> le
-          | comparison ">=" unary  -> ge
+?product: unary
+        | product "*" unary    -> multiply
 
 ?unary: app
       | "-" unary         -> negation
@@ -30,6 +33,7 @@
      | NAME              -> var
      | "\\" NAME "." exp -> lam
      | "(" exp ")"
+     | "#"               -> nil
 
 // Define the terminals (tokens)
 WS: /\s+/
