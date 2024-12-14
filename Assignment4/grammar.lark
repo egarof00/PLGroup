@@ -8,14 +8,16 @@
 ?eq_exp: list_ops
        | list_ops "==" list_ops -> eq
 
-?list_ops: sum
-         | list_ops ":" sum -> cons
+?list_ops: cons_exp
          | "hd" list_ops     -> hd
          | "tl" list_ops     -> tl
-         | "let" NAME "=" list_ops "in" list_ops    -> let
-         | "letrec" NAME "=" list_ops "in" list_ops -> rec
-         | "fix" list_ops                           -> fix
-         | "if" list_ops "then" list_ops "else" list_ops -> if_then_else
+         | "let" NAME "=" exp "in" exp    -> let
+         | "letrec" NAME "=" exp "in" exp -> rec
+         | "fix" exp                      -> fix
+         | "if" exp "then" exp "else" exp -> if_then_else
+
+?cons_exp: sum
+         | sum ":" cons_exp -> cons
 
 ?sum: product
     | sum "+" product    -> plus

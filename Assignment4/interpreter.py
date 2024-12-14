@@ -13,8 +13,11 @@ def interpret(source_code):
     print()
     cst = parser.parse(source_code)
     ast = LambdaCalculusTransformer().transform(cst)
+    print("AST:", ast)
     result_ast = evaluate(ast)
+    print("EVALUATED:", result_ast)
     result = linearize(result_ast)
+    print("LINEARIZED:", result)
     return result
 
 # convert concrete syntax to CST
@@ -108,12 +111,23 @@ class LambdaCalculusTransformer(Transformer):
         return ('cons', args[0], args[1])
 
 def linearize(ast):
+    print("LINEARIZING:", ast)
     if isinstance(ast, (float, int)):
         return f"{ast:.1f}"
     
-    # If it can't be fully evaluated, format it appropriately
     if isinstance(ast, tuple):
-        if ast[0] == 'var':
+        if ast[0] == 'hd':
+            # Don't evaluate again, just format what we have
+            if isinstance(ast[1], tuple) and ast[1][0] == 'var':
+                return f"(hd {ast[1][1]})"  # Format unevaluated hd of variable
+            elif isinstance(ast[1], tuple) and ast[1][0] == 'cons':
+                return linearize(evaluate(ast))  # Evaluate and linearize the result
+            return f"(hd {linearize(ast[1])})"  # Format other unevaluated hd expressions
+        
+        elif ast[0] == 'cons':
+            return f"({linearize(ast[1])} : {linearize(ast[2])})"
+        
+        elif ast[0] == 'var':
             return ast[1]
         
         elif ast[0] == 'lam':
@@ -165,18 +179,19 @@ def linearize(ast):
             return f"({linearize(ast[1])} <= {linearize(ast[2])})"
         
         elif ast[0] == 'seq':
-            # Simply format with ;; between evaluated expressions
             return f"{linearize(ast[1])} ;; {linearize(ast[2])}"
-    
+        
         elif ast[0] == 'nil':
             return "#"
         
-        elif ast[0] == 'cons':
-            # Format cons with : syntax and proper parentheses
-            head = linearize(ast[1])
-            tail = linearize(ast[2])
-            return f"({head} : {tail})"
-    
+        elif ast[0] == 'tl':
+            # Don't evaluate again, just format what we have
+            if isinstance(ast[1], tuple) and ast[1][0] == 'var':
+                return f"(tl {ast[1][1]})"  # Format unevaluated tl of variable
+            elif isinstance(ast[1], tuple) and ast[1][0] == 'cons':
+                return linearize(evaluate(ast))  # Evaluate and linearize the result
+            return f"(tl {linearize(ast[1])})"  # Format other unevaluated tl expressions
+
     return str(ast)
 
 def evaluate(tree):
@@ -347,16 +362,26 @@ def evaluate(tree):
             return ('seq', result1, result2)  # Keep original 'seq' tag
 
         elif tree[0] == 'hd':
+            print("EVALUATING HD:", tree)
             lst = evaluate(tree[1])
-            if isinstance(lst, tuple) and lst[0] == 'cons':
-                return lst[1]  # Return the head of the list
-            raise ValueError("hd applied to non-list")
+            print("LIST TO TAKE HEAD FROM:", lst)
+            if isinstance(lst, tuple):
+                if lst[0] == 'cons':
+                    head = lst[1]
+                    print("HEAD VALUE:", head)
+                    return head  # Simply return the head value
+                elif lst[0] == 'nil':
+                    return ('nil',)
+            return ('hd', lst)  # Keep hd unevaluated for variables or other types
 
         elif tree[0] == 'tl':
             lst = evaluate(tree[1])
-            if isinstance(lst, tuple) and lst[0] == 'cons':
-                return lst[2]  # Return the tail of the list
-            raise ValueError("tl applied to non-list")
+            if isinstance(lst, tuple):
+                if lst[0] == 'cons':
+                    return lst[2]  # Return the tail of the list
+                elif lst[0] == 'nil':
+                    return ('nil',)
+            return ('tl', lst)  # Keep tl unevaluated for variables or other types
 
         elif tree[0] == 'nil':
             return ('nil',)
