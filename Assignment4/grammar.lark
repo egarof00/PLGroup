@@ -13,7 +13,6 @@
 ?exp8: "hd" exp     -> hd
      | "tl" exp     -> tl
      | exp ":" exp -> cons
-     #| sum
 
 ?sum: product
     | sum "+" product    -> plus

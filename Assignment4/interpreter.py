@@ -1,6 +1,7 @@
 import sys
-from lark import Lark, Transformer, Tree
 import lark
+from lark import Lark, Transformer, Tree
+
 
 print(f"Python version: {sys.version}")
 print(f"Lark version: {lark.__version__}")
@@ -183,33 +184,62 @@ def evaluate(tree):
         return tree
 
     if isinstance(tree, tuple):
-        if tree[0] == 'app':  
+        if tree[0] == 'lam':
+            # If the lambda body is a constant value, return it directly
+            body = evaluate(tree[2])
+            if isinstance(body, (float, int)):
+                return body
+            return ('lam', tree[1], body)
+
+        elif tree[0] == 'app':  
             if len(tree) == 2:  
-                # If the app rule matches a single atom, just evaluate the atom  
                 return evaluate(tree[1])  
             else:  
-                # Evaluate both sides of the application  
                 left = evaluate(tree[1])  
                 right = evaluate(tree[2])  
+                
+                # If left is nil, just return nil
+                if isinstance(left, tuple) and left[0] == 'nil':
+                    return left
+                
+                # If left is a lambda, then perform beta reduction  
+                if isinstance(left, tuple) and left[0] == 'lam':  
+                    substituted = substitute(left[2], left[1], right)  
+                    return evaluate(substituted)  
        
-            # If left is a lambda, then perform beta reduction  
-            if isinstance(left, tuple) and left[0] == 'lam':  
-                substituted = substitute(left[2], left[1], right)  
-                return evaluate(substituted)  # Continue evaluating after substitution  
-       
-            # Otherwise, preserve the application structure  
-            return ('app', left, right)
+                # Otherwise, preserve the application structure  
+                return ('app', left, right)
 
-        elif tree[0] == 'cons':  
-            if len(tree) == 2:  
-                # If the cons rule matches a single sum, just evaluate the sum  
-                return evaluate(tree[1])  
-            else:  
-                # Fully evaluate both head and tail before constructing the cons cell  
-                head = evaluate(tree[1])  
-                tail = evaluate(tree[2])  
+        elif tree[0] == 'let':
+            # Evaluate the value first
+            value = evaluate(tree[2])
+            # Then substitute it in the body and evaluate
+            substituted = substitute(tree[3], tree[1], value)
+            return evaluate(substituted)
+
+        elif tree[0] == 'cons':
+            # First evaluate the entire expression if it's a let binding
+            if isinstance(tree[1], tuple) and tree[1][0] == 'let':
+                head = evaluate(tree[1])
+            else:
+                # Otherwise evaluate head as before
+                head = tree[1]
+                prev_head = None
+                while prev_head != head:
+                    prev_head = head
+                    head = evaluate(head)
+            
+            # Do the same for tail
+            if isinstance(tree[2], tuple) and tree[2][0] == 'let':
+                tail = evaluate(tree[2])
+            else:
+                tail = tree[2]
+                prev_tail = None
+                while prev_tail != tail:
+                    prev_tail = tail
+                    tail = evaluate(tail)
+            
             return ('cons', head, tail)
-
 
         elif tree[0] == 'multiply':
             # Evaluate multiplication first
@@ -248,13 +278,6 @@ def evaluate(tree):
                 return -value
             return ('negation', value)
         
-        elif tree[0] == 'let':
-            # Evaluate the value first
-            value = evaluate(tree[2])
-            # Then substitute it in the body and evaluate
-            substituted = substitute(tree[3], tree[1], value)
-            return evaluate(substituted)
-
         elif tree[0] == 'rec':
             # For letrec, we use the Y combinator approach
             # Create a lambda that will be the recursive function
@@ -354,11 +377,6 @@ def evaluate(tree):
         elif tree[0] == 'nil':
             return ('nil',)
 
-        elif tree[0] == 'cons':
-            head = evaluate(tree[1])
-            tail = evaluate(tree[2])
-            return ('cons', head, tail)
-
     return tree
 
 # generate a fresh name 
@@ -387,12 +405,16 @@ def substitute(tree, name, replacement):
             
         elif tree[0] == 'lam':
             if tree[1] == name:
+                # Don't substitute if the lambda binds the same name
                 return tree
+            elif isinstance(replacement, tuple) and replacement[0] == 'var':
+                # If replacing with a variable, proceed normally
+                body = substitute(tree[2], name, replacement)
+                return ('lam', tree[1], body)
             else:
-                fresh_name = name_generator.generate()
-                body = substitute(tree[2], tree[1], ('var', fresh_name))
-                body = substitute(body, name, replacement)
-                return ('lam', fresh_name, body)
+                # If replacing with a value, substitute directly
+                body = substitute(tree[2], name, replacement)
+                return ('lam', tree[1], body)
                 
         elif tree[0] in ['app', 'plus', 'minus', 'multiply']:
             return (tree[0], substitute(tree[1], name, replacement), 
