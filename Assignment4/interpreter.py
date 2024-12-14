@@ -416,7 +416,7 @@ def substitute(tree, name, replacement):
                 body = substitute(tree[2], name, replacement)
                 return ('lam', tree[1], body)
                 
-        elif tree[0] in ['app', 'plus', 'minus', 'multiply']:
+        elif tree[0] in ['app', 'plus', 'minus', 'multiply', 'cons']:
             return (tree[0], substitute(tree[1], name, replacement), 
                    substitute(tree[2], name, replacement))
             
