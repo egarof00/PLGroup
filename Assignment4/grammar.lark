@@ -10,11 +10,10 @@
     | "if" exp "then" exp "else" exp -> if_then_else
     | exp8
 
-?exp8: exp ":" exp -> cons
-     | "hd" exp     -> hd
+?exp8: "hd" exp     -> hd
      | "tl" exp     -> tl
-     | "#"          -> nil
-     ##| sum
+     | exp ":" exp -> cons
+     #| sum
 
 ?sum: product
     | sum "+" product    -> plus
@@ -40,6 +39,7 @@
      | NAME              -> var
      | "\\" NAME "." exp -> lam
      | "(" exp ")"
+     | "#"               -> nil
 
 // Define the terminals (tokens)
 WS: /\s+/
