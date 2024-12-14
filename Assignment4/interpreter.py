@@ -8,16 +8,10 @@ print(f"Lark version: {lark.__version__}")
 
 #  run/execute/interpret source code
 def interpret(source_code):
-    print("SOURCE: ")
-    print(source_code)
-    print()
     cst = parser.parse(source_code)
     ast = LambdaCalculusTransformer().transform(cst)
-    print("AST:", ast)
     result_ast = evaluate(ast)
-    print("EVALUATED:", result_ast)
     result = linearize(result_ast)
-    print("LINEARIZED:", result)
     return result
 
 # convert concrete syntax to CST
@@ -111,7 +105,6 @@ class LambdaCalculusTransformer(Transformer):
         return ('cons', args[0], args[1])
 
 def linearize(ast):
-    print("LINEARIZING:", ast)
     if isinstance(ast, (float, int)):
         return f"{ast:.1f}"
     
@@ -273,13 +266,13 @@ def evaluate(tree):
             return ('negation', value)
         
         elif tree[0] == 'rec':
-            # For letrec, we use the Y combinator approach
             # Create a lambda that will be the recursive function
             func = ('lam', tree[1], tree[2])
             # Create the fix expression
             fix_expr = ('fix', func)
-            # Evaluate the fix expression and substitute into body
+            # Evaluate the fix expression
             rec_value = evaluate(fix_expr)
+            # Substitute into body and evaluate
             substituted = substitute(tree[3], tree[1], rec_value)
             return evaluate(substituted)
 
@@ -287,9 +280,8 @@ def evaluate(tree):
             # Evaluate the argument to fix
             arg = evaluate(tree[1])
             if isinstance(arg, tuple) and arg[0] == 'lam':
-                # Apply the function to (fix function)
-                fix_point = ('app', arg, tree)
-                return evaluate(fix_point)
+                # Instead of evaluating immediately, return a special fix-lambda
+                return ('fix-lam', arg[1], arg[2])
             return ('fix', arg)
 
         elif tree[0] == 'if':
@@ -362,13 +354,10 @@ def evaluate(tree):
             return ('seq', result1, result2)  # Keep original 'seq' tag
 
         elif tree[0] == 'hd':
-            print("EVALUATING HD:", tree)
             lst = evaluate(tree[1])
-            print("LIST TO TAKE HEAD FROM:", lst)
             if isinstance(lst, tuple):
                 if lst[0] == 'cons':
                     head = lst[1]
-                    print("HEAD VALUE:", head)
                     return head  # Simply return the head value
                 elif lst[0] == 'nil':
                     return ('nil',)
