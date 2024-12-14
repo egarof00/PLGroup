@@ -183,29 +183,33 @@ def evaluate(tree):
         return tree
 
     if isinstance(tree, tuple):
-        if tree[0] == 'app':
-            # Evaluate both sides of the application
-            left = evaluate(tree[1])
-            right = evaluate(tree[2])
-            
-            # If left is a lambda, then perform beta reduction
-            if isinstance(left, tuple) and left[0] == 'lam':
-                substituted = substitute(left[2], left[1], right)
-                return evaluate(substituted)  # Continue evaluating after substitution
-            
-            # Otherwise, preserve the application structure
+        if tree[0] == 'app':  
+            if len(tree) == 2:  
+                # If the app rule matches a single atom, just evaluate the atom  
+                return evaluate(tree[1])  
+            else:  
+                # Evaluate both sides of the application  
+                left = evaluate(tree[1])  
+                right = evaluate(tree[2])  
+       
+            # If left is a lambda, then perform beta reduction  
+            if isinstance(left, tuple) and left[0] == 'lam':  
+                substituted = substitute(left[2], left[1], right)  
+                return evaluate(substituted)  # Continue evaluating after substitution  
+       
+            # Otherwise, preserve the application structure  
             return ('app', left, right)
 
-        elif tree[0] == 'cons':
-            # Fully evaluate both head and tail before constructing the cons cell
-            head = evaluate(tree[1])
-            tail = evaluate(tree[2])
-            
-            # If head is an application, evaluate it further
-            if isinstance(head, tuple) and head[0] == 'app':
-                head = evaluate(head)
-                
+        elif tree[0] == 'cons':  
+            if len(tree) == 2:  
+                # If the cons rule matches a single sum, just evaluate the sum  
+                return evaluate(tree[1])  
+            else:  
+                # Fully evaluate both head and tail before constructing the cons cell  
+                head = evaluate(tree[1])  
+                tail = evaluate(tree[2])  
             return ('cons', head, tail)
+
 
         elif tree[0] == 'multiply':
             # Evaluate multiplication first
