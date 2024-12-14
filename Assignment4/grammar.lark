@@ -3,16 +3,19 @@
 ?prog: exp
      | exp ";;" prog -> seq
 
-?exp: sum
-    | "let" NAME "=" exp "in" exp    -> let
-    | "letrec" NAME "=" exp "in" exp -> rec
-    | "fix" exp                      -> fix
-    | "if" exp "then" exp "else" exp -> if_then_else
-    | exp8
+?exp: eq_exp
 
-?exp8: "hd" exp     -> hd
-     | "tl" exp     -> tl
-     | exp ":" exp -> cons
+?eq_exp: list_ops
+       | list_ops "==" list_ops -> eq
+
+?list_ops: sum
+         | list_ops ":" sum -> cons
+         | "hd" list_ops     -> hd
+         | "tl" list_ops     -> tl
+         | "let" NAME "=" list_ops "in" list_ops    -> let
+         | "letrec" NAME "=" list_ops "in" list_ops -> rec
+         | "fix" list_ops                           -> fix
+         | "if" list_ops "then" list_ops "else" list_ops -> if_then_else
 
 ?sum: product
     | sum "+" product    -> plus
@@ -22,7 +25,6 @@
         | product "*" comparison    -> multiply
 
 ?comparison: unary
-          | comparison "==" unary  -> eq
           | comparison "<" unary   -> lt
           | comparison ">" unary   -> gt
           | comparison "<=" unary  -> le

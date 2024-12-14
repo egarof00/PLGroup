@@ -218,27 +218,9 @@ def evaluate(tree):
             return evaluate(substituted)
 
         elif tree[0] == 'cons':
-            # First evaluate the entire expression if it's a let binding
-            if isinstance(tree[1], tuple) and tree[1][0] == 'let':
-                head = evaluate(tree[1])
-            else:
-                # Otherwise evaluate head as before
-                head = tree[1]
-                prev_head = None
-                while prev_head != head:
-                    prev_head = head
-                    head = evaluate(head)
-            
-            # Do the same for tail
-            if isinstance(tree[2], tuple) and tree[2][0] == 'let':
-                tail = evaluate(tree[2])
-            else:
-                tail = tree[2]
-                prev_tail = None
-                while prev_tail != tail:
-                    prev_tail = tail
-                    tail = evaluate(tail)
-            
+            # Simply evaluate both parts fully
+            head = evaluate(tree[1])
+            tail = evaluate(tree[2])
             return ('cons', head, tail)
 
         elif tree[0] == 'multiply':
@@ -262,9 +244,6 @@ def evaluate(tree):
             if isinstance(left, (float, int)) and isinstance(right, (float, int)):
                 return left - right
             return ('minus', left, right)
-
-        elif tree[0] == 'lam':
-            return tree
 
         elif tree[0] == 'var':
             return tree
@@ -309,25 +288,30 @@ def evaluate(tree):
                 return evaluate(tree[3])  # else branch
 
         elif tree[0] == 'eq':
+            # First fully evaluate both sides to get complete lists
             left = evaluate(tree[1])
             right = evaluate(tree[2])
+            
             # Compare the evaluated expressions
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return float(left == right)
+            
             # For lists (cons structures), compare them recursively
             if isinstance(left, tuple) and isinstance(right, tuple):
+                # If both are nil, they're equal
                 if left[0] == 'nil' and right[0] == 'nil':
                     return float(True)
+                # If both are cons cells, compare heads and tails
                 if left[0] == 'cons' and right[0] == 'cons':
-                    # Compare heads
+                    # First check if heads are equal
                     head_eq = evaluate(('eq', left[1], right[1]))
                     if head_eq == 0.0:  # If heads are not equal
                         return 0.0
-                    # Compare tails
+                    # Then check if tails are equal
                     return evaluate(('eq', left[2], right[2]))
-                return 0.0  # Different types of lists
-            return 0.0  # Different types
-            
+                return float(False)  # Different types of structures
+            return float(False)  # Different types
+
         elif tree[0] == 'lt':
             left = evaluate(tree[1])
             right = evaluate(tree[2])
