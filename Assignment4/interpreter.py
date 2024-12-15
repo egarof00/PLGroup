@@ -455,8 +455,24 @@ def substitute(tree, name, replacement):
     return tree
 
 def main():
-    input = sys.argv[1]
-    result = interpret(input)
+    input_arg = sys.argv[1]
+    
+    # Check if the input is a file path ending in .lc
+    if input_arg.endswith('.lc'):
+        try:
+            with open(input_arg, 'r') as file:
+                input_code = file.read()
+        except FileNotFoundError:
+            print(f"Error: Could not find file '{input_arg}'")
+            return
+        except Exception as e:
+            print(f"Error reading file: {e}")
+            return
+    else:
+        # Treat as direct command line input
+        input_code = input_arg
+    
+    result = interpret(input_code)
     print(f"\033[95m{result}\033[0m")
 
 if __name__ == "__main__":
